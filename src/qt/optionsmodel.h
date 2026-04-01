@@ -46,6 +46,11 @@ class OptionsModel : public QAbstractListModel
 public:
     explicit OptionsModel(interfaces::Node& node, QObject *parent = nullptr);
 
+    enum class FeerateUnit {
+        SAT_VB,   //!< sat/vB
+        BTC_KVB,  //!< BTC/kvB
+    };
+
     enum OptionID {
         StartAtStartup,         // bool
         ShowTrayIcon,           // bool
@@ -59,6 +64,7 @@ public:
         ProxyIPTor,             // QString
         ProxyPortTor,           // int
         DisplayUnit,            // BitcoinUnit
+        DisplayFeerateUnit,     // FeerateUnit
         ThirdPartyTxUrls,       // QString
         Language,               // QString
         FontForMoney,           // FontChoice
@@ -95,6 +101,8 @@ public:
     bool setOption(OptionID option, const QVariant& value, const std::string& suffix="");
     /** Updates current unit in memory, settings and emits displayUnitChanged(new_unit) signal */
     void setDisplayUnit(const QVariant& new_unit);
+    /** Updates current feerate unit in memory, settings and emits displayFeerateUnitChanged(new_unit) signal */
+    void setDisplayFeerateUnit(const QVariant& new_unit);
 
     /* Explicit getters */
     bool getShowTrayIcon() const { return m_show_tray_icon; }
@@ -103,6 +111,7 @@ public:
     BitcoinUnit getDisplayUnit() const { return m_display_bitcoin_unit; }
     QString getThirdPartyTxUrls() const { return strThirdPartyTxUrls; }
     QFont getFontForMoney() const;
+    FeerateUnit getDisplayFeerateUnit() const { return m_display_feerate_unit; }
     bool getCoinControlFeatures() const { return fCoinControlFeatures; }
     bool getSubFeeFromAmount() const { return m_sub_fee_from_amount; }
     bool getEnablePSBTControls() const { return m_enable_psbt_controls; }
@@ -128,6 +137,7 @@ private:
     bool fMinimizeOnClose;
     QString language;
     BitcoinUnit m_display_bitcoin_unit;
+    FeerateUnit m_display_feerate_unit;
     QString strThirdPartyTxUrls;
     FontChoice m_font_money{FontChoiceAbstract::EmbeddedFont};
     bool fCoinControlFeatures;
@@ -149,11 +159,13 @@ private:
 
 Q_SIGNALS:
     void displayUnitChanged(BitcoinUnit unit);
+    void displayFeerateUnitChanged(FeerateUnit unit);
     void coinControlFeaturesChanged(bool);
     void showTrayIconChanged(bool);
     void fontForMoneyChanged(const QFont&);
 };
 
 Q_DECLARE_METATYPE(OptionsModel::FontChoice)
+Q_DECLARE_METATYPE(OptionsModel::FeerateUnit)
 
 #endif // BITCOIN_QT_OPTIONSMODEL_H
