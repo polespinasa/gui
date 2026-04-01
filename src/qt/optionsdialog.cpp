@@ -32,6 +32,8 @@
 #include <QSystemTrayIcon>
 #include <QTimer>
 
+using FeerateUnit = OptionsModel::FeerateUnit;
+
 int setFontChoice(QComboBox* cb, const OptionsModel::FontChoice& fc)
 {
     int i;
@@ -176,6 +178,9 @@ OptionsDialog::OptionsDialog(QWidget* parent, bool enableWallet)
     }
     ui->unit->setModel(new BitcoinUnits(this));
 
+    ui->feerateUnit->addItem(tr("BTC/kvB"), QVariant::fromValue(FeerateUnit::BTC_KVB));
+    ui->feerateUnit->addItem(tr("sat/vB"), QVariant::fromValue(FeerateUnit::SAT_VB));
+
     /* Widget-to-option mapper */
     mapper = new QDataWidgetMapper(this);
     mapper->setSubmitPolicy(QDataWidgetMapper::ManualSubmit);
@@ -240,6 +245,14 @@ void OptionsDialog::setModel(OptionsModel *_model)
 
         const auto& font_for_money = _model->data(_model->index(OptionsModel::FontForMoney, 0), Qt::EditRole).value<OptionsModel::FontChoice>();
         setFontChoice(ui->moneyFont, font_for_money);
+
+        const FeerateUnit current_feerate_unit = _model->data(_model->index(OptionsModel::DisplayFeerateUnit, 0), Qt::EditRole).value<FeerateUnit>();
+        for (int i = 0; i < ui->feerateUnit->count(); ++i) {
+            if (ui->feerateUnit->itemData(i).value<FeerateUnit>() == current_feerate_unit) {
+                ui->feerateUnit->setCurrentIndex(i);
+                break;
+            }
+        }
 
         updateDefaultProxyNets();
     }
@@ -379,6 +392,7 @@ void OptionsDialog::on_openBitcoinConfButton_clicked()
 void OptionsDialog::on_okButton_clicked()
 {
     model->setData(model->index(OptionsModel::FontForMoney, 0), ui->moneyFont->itemData(ui->moneyFont->currentIndex()));
+    model->setData(model->index(OptionsModel::DisplayFeerateUnit, 0), ui->feerateUnit->currentData());
 
     mapper->submit();
     accept();
