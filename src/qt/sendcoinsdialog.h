@@ -7,6 +7,7 @@
 
 #include <primitives/transaction_identifier.h>
 #include <qt/clientmodel.h>
+#include <qt/optionsmodel.h>
 #include <qt/walletmodel.h>
 
 #include <QDialog>
@@ -73,6 +74,7 @@ private:
     bool fNewRecipientAllowed{true};
     bool fFeeMinimized{true};
     const PlatformStyle *platformStyle;
+    OptionsModel::FeerateUnit m_last_feerate_unit{OptionsModel::FeerateUnit::SAT_VB};
 
     // Copy PSBT to clipboard and offer to save it.
     void presentPSBT(PartiallySignedTransaction& psbt);

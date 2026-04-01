@@ -33,6 +33,7 @@
 #include <fstream>
 #include <memory>
 
+#include <QDoubleSpinBox>
 #include <QFontMetrics>
 #include <QScrollBar>
 #include <QSettings>
@@ -164,6 +165,7 @@ void SendCoinsDialog::setModel(WalletModel *_model)
 
         // Coin Control
         connect(_model->getOptionsModel(), &OptionsModel::displayUnitChanged, this, &SendCoinsDialog::coinControlUpdateLabels);
+        connect(_model->getOptionsModel(), &OptionsModel::displayFeerateUnitChanged, this, &SendCoinsDialog::refreshBalance);
         connect(_model->getOptionsModel(), &OptionsModel::coinControlFeaturesChanged, this, &SendCoinsDialog::coinControlFeatureChanged);
         ui->frameCoinControl->setVisible(_model->getOptionsModel()->getCoinControlFeatures());
         coinControlUpdateLabels();
@@ -179,6 +181,7 @@ void SendCoinsDialog::setModel(WalletModel *_model)
         connect(ui->groupFee, &QButtonGroup::idClicked, this, &SendCoinsDialog::coinControlUpdateLabels);
 
         connect(ui->customFee, &BitcoinAmountField::valueChanged, this, &SendCoinsDialog::coinControlUpdateLabels);
+        connect(ui->customFeeRateSatVb, qOverload<double>(&QDoubleSpinBox::valueChanged), this, &SendCoinsDialog::coinControlUpdateLabels);
 #if (QT_VERSION >= QT_VERSION_CHECK(6, 7, 0))
         connect(ui->optInRBF, &QCheckBox::checkStateChanged, this, &SendCoinsDialog::updateSmartFeeLabel);
         connect(ui->optInRBF, &QCheckBox::checkStateChanged, this, &SendCoinsDialog::coinControlUpdateLabels);
@@ -716,7 +719,34 @@ void SendCoinsDialog::setBalance(const interfaces::WalletBalances& balances)
 void SendCoinsDialog::refreshBalance()
 {
     setBalance(model->getCachedBalance());
-    ui->customFee->setDisplayUnit(model->getOptionsModel()->getDisplayUnit());
+
+    if (model && model->getOptionsModel()) {
+        ui->customFee->setVisible(false);
+        ui->customFeeRateSatVb->setVisible(true);
+
+        const OptionsModel::FeerateUnit newUnit = model->getOptionsModel()->getDisplayFeerateUnit();
+        const double oldValue = ui->customFeeRateSatVb->value();
+
+        if (newUnit == OptionsModel::FeerateUnit::BTC_KVB) {
+            ui->customFeeRateSatVb->setDecimals(8);
+            ui->customFeeRateSatVb->setMinimum(1e-8);
+            ui->customFeeRateSatVb->setMaximum(1.0);
+            ui->customFeeRateSatVb->setSingleStep(1e-8);
+            if (m_last_feerate_unit == OptionsModel::FeerateUnit::SAT_VB) {
+                ui->customFeeRateSatVb->setValue(oldValue / 100000.0);
+            }
+        } else {
+            ui->customFeeRateSatVb->setDecimals(3);
+            ui->customFeeRateSatVb->setMinimum(0.001);
+            ui->customFeeRateSatVb->setMaximum(10000.0);
+            ui->customFeeRateSatVb->setSingleStep(0.001);
+            if (m_last_feerate_unit == OptionsModel::FeerateUnit::BTC_KVB) {
+                ui->customFeeRateSatVb->setValue(oldValue * 100000.0);
+            }
+        }
+        m_last_feerate_unit = newUnit;
+    }
+
     updateSmartFeeLabel();
 }
 
@@ -810,6 +840,7 @@ void SendCoinsDialog::updateFeeSectionControls()
     ui->labelCustomFeeWarning   ->setEnabled(ui->radioCustomFee->isChecked());
     ui->labelCustomPerKilobyte  ->setEnabled(ui->radioCustomFee->isChecked());
     ui->customFee               ->setEnabled(ui->radioCustomFee->isChecked());
+    ui->customFeeRateSatVb      ->setEnabled(ui->radioCustomFee->isChecked());
 }
 
 void SendCoinsDialog::updateFeeMinimizedLabel()
@@ -820,14 +851,29 @@ void SendCoinsDialog::updateFeeMinimizedLabel()
     if (ui->radioSmartFee->isChecked())
         ui->labelFeeMinimized->setText(ui->labelSmartFee->text());
     else {
-        ui->labelFeeMinimized->setText(tr("%1/kvB").arg(BitcoinUnits::formatWithUnit(model->getOptionsModel()->getDisplayUnit(), ui->customFee->value())));
+        const OptionsModel* optModel = model->getOptionsModel();
+        CFeeRate feeRate;
+        if (optModel->getDisplayFeerateUnit() == OptionsModel::FeerateUnit::BTC_KVB) {
+            feeRate = CFeeRate(static_cast<CAmount>(ui->customFeeRateSatVb->value() * COIN));
+        } else {
+            feeRate = CFeeRate(static_cast<CAmount>(ui->customFeeRateSatVb->value() * 1000), 1000);
+        }
+        FeeRateFormat fmt = (optModel->getDisplayFeerateUnit() == OptionsModel::FeerateUnit::BTC_KVB)
+            ? FeeRateFormat::BTC_KVB
+            : FeeRateFormat::SAT_VB;
+        ui->labelFeeMinimized->setText(QString::fromStdString(feeRate.ToString(fmt)));
     }
 }
 
 void SendCoinsDialog::updateCoinControlState()
 {
     if (ui->radioCustomFee->isChecked()) {
-        m_coin_control->m_feerate = CFeeRate(ui->customFee->value());
+        if (model && model->getOptionsModel() &&
+            model->getOptionsModel()->getDisplayFeerateUnit() == OptionsModel::FeerateUnit::BTC_KVB) {
+            m_coin_control->m_feerate = CFeeRate(static_cast<CAmount>(ui->customFeeRateSatVb->value() * COIN));
+        } else {
+            m_coin_control->m_feerate = CFeeRate(static_cast<CAmount>(ui->customFeeRateSatVb->value() * 1000), 1000);
+        }
     } else {
         m_coin_control->m_feerate.reset();
     }
@@ -857,7 +903,16 @@ void SendCoinsDialog::updateSmartFeeLabel()
     FeeReason reason;
     CFeeRate feeRate = CFeeRate(model->wallet().getMinimumFee(1000, *m_coin_control, &returned_target, &reason));
 
-    ui->labelSmartFee->setText(tr("%1/kvB").arg(BitcoinUnits::formatWithUnit(model->getOptionsModel()->getDisplayUnit(), feeRate.GetFeePerK())));
+    const OptionsModel* optModel = model->getOptionsModel();
+    FeeRateFormat fmt = (optModel->getDisplayFeerateUnit() == OptionsModel::FeerateUnit::BTC_KVB)
+        ? FeeRateFormat::BTC_KVB
+        : FeeRateFormat::SAT_VB;
+    ui->labelSmartFee->setText(QString::fromStdString(feeRate.ToString(fmt)));
+    if (optModel->getDisplayFeerateUnit() == OptionsModel::FeerateUnit::BTC_KVB) {
+        ui->labelCustomPerKilobyte->setText(tr("(BTC/kvB)"));
+    } else {
+        ui->labelCustomPerKilobyte->setText(tr("(sat/vB)"));
+    }
 
     if (reason == FeeReason::FALLBACK) {
         ui->labelSmartFee2->show(); // (Smart fee not initialized yet. This usually takes a few blocks...)
