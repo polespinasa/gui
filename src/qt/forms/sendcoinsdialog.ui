@@ -822,6 +822,50 @@
                </property>
                <item>
                 <layout class="QHBoxLayout" name="horizontalLayoutFee13">
+                 <property name="spacing">
+                  <number>4</number>
+                 </property>
+                 <item>
+                  <widget class="BitcoinAmountField" name="customFee">
+                   <property name="sizePolicy">
+                    <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                     <horstretch>0</horstretch>
+                     <verstretch>0</verstretch>
+                    </sizepolicy>
+                   </property>
+                  </widget>
+                 </item>
+                 <item>
+                  <widget class="QDoubleSpinBox" name="customFeeRateSatVb">
+                   <property name="sizePolicy">
+                    <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                     <horstretch>0</horstretch>
+                     <verstretch>0</verstretch>
+                    </sizepolicy>
+                   </property>
+                   <property name="toolTip">
+                    <string>Enter the fee rate in sat/vB (satoshis per virtual byte).</string>
+                   </property>
+                   <property name="decimals">
+                    <number>3</number>
+                   </property>
+                   <property name="minimum">
+                    <double>0.001</double>
+                   </property>
+                   <property name="maximum">
+                    <double>10000.000</double>
+                   </property>
+                   <property name="singleStep">
+                    <double>0.001</double>
+                   </property>
+                   <property name="value">
+                    <double>1.000</double>
+                   </property>
+                   <property name="visible">
+                    <bool>false</bool>
+                   </property>
+                  </widget>
+                 </item>
                  <item>
                   <widget class="QLabel" name="labelCustomPerKilobyte">
                    <property name="toolTip">
@@ -830,12 +874,9 @@
 Note:  Since the fee is calculated on a per-byte basis, a fee rate of "100 satoshis per kvB" for a transaction size of 500 virtual bytes (half of 1 kvB) would ultimately yield a fee of only 50 satoshis.</string>
                    </property>
                    <property name="text">
-                    <string>per kilobyte</string>
+                    <string>(BTC/kvB)</string>
                    </property>
                   </widget>
-                 </item>
-                 <item>
-                  <widget class="BitcoinAmountField" name="customFee"/>
                  </item>
                  <item>
                   <spacer name="horizontalSpacer_6">

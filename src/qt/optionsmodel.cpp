@@ -198,6 +198,17 @@ bool OptionsModel::Init(bilingual_str& error)
         settings.setValue("DisplayBitcoinUnit", QVariant::fromValue(m_display_bitcoin_unit));
     }
 
+    if (!settings.contains("DisplayFeerateUnit")) {
+        settings.setValue("DisplayFeerateUnit", QVariant::fromValue(FeerateUnit::SAT_VB));
+    }
+    QVariant feerate_unit = settings.value("DisplayFeerateUnit");
+    if (feerate_unit.canConvert<FeerateUnit>()) {
+        m_display_feerate_unit = feerate_unit.value<FeerateUnit>();
+    } else {
+        m_display_feerate_unit = FeerateUnit::SAT_VB;
+        settings.setValue("DisplayFeerateUnit", QVariant::fromValue(m_display_feerate_unit));
+    }
+
     if (!settings.contains("strThirdPartyTxUrls"))
         settings.setValue("strThirdPartyTxUrls", "");
     strThirdPartyTxUrls = settings.value("strThirdPartyTxUrls", "").toString();
@@ -452,6 +463,8 @@ QVariant OptionsModel::getOption(OptionID option, const std::string& suffix) con
 #endif
     case DisplayUnit:
         return QVariant::fromValue(m_display_bitcoin_unit);
+    case DisplayFeerateUnit:
+        return QVariant::fromValue(m_display_feerate_unit);
     case ThirdPartyTxUrls:
         return strThirdPartyTxUrls;
     case Language:
@@ -614,6 +627,9 @@ bool OptionsModel::setOption(OptionID option, const QVariant& value, const std::
     case DisplayUnit:
         setDisplayUnit(value);
         break;
+    case DisplayFeerateUnit:
+        setDisplayFeerateUnit(value);
+        break;
     case ThirdPartyTxUrls:
         if (strThirdPartyTxUrls != value.toString()) {
             strThirdPartyTxUrls = value.toString();
@@ -691,6 +707,15 @@ bool OptionsModel::setOption(OptionID option, const QVariant& value, const std::
     }
 
     return successful;
+}
+
+void OptionsModel::setDisplayFeerateUnit(const QVariant& new_unit)
+{
+    if (new_unit.isNull() || new_unit.value<FeerateUnit>() == m_display_feerate_unit) return;
+    m_display_feerate_unit = new_unit.value<FeerateUnit>();
+    QSettings settings;
+    settings.setValue("DisplayFeerateUnit", QVariant::fromValue(m_display_feerate_unit));
+    Q_EMIT displayFeerateUnitChanged(m_display_feerate_unit);
 }
 
 void OptionsModel::setDisplayUnit(const QVariant& new_unit)

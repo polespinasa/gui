@@ -91,6 +91,7 @@ static void RegisterMetaTypes()
     qRegisterMetaType<QMessageBox::Icon>("QMessageBox::Icon");
     qRegisterMetaType<interfaces::BlockAndHeaderTipInfo>("interfaces::BlockAndHeaderTipInfo");
     qRegisterMetaType<BitcoinUnit>("BitcoinUnit");
+    qRegisterMetaType<OptionsModel::FeerateUnit>("OptionsModel::FeerateUnit");
 }
 
 static QString GetLangTerritory()

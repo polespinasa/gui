@@ -735,6 +735,30 @@
         </layout>
        </item>
        <item>
+        <layout class="QHBoxLayout" name="horizontalLayout_feerate_Display">
+         <item>
+          <widget class="QLabel" name="feerateUnitLabel">
+           <property name="text">
+            <string>Fee&amp;rate unit:</string>
+           </property>
+           <property name="textFormat">
+            <enum>Qt::PlainText</enum>
+           </property>
+           <property name="buddy">
+            <cstring>feerateUnit</cstring>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QComboBox" name="feerateUnit">
+           <property name="toolTip">
+            <string>Choose the unit used for fee rates (e.g. in the Send dialog). This setting is independent from the display unit.</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </item>
+       <item>
         <layout class="QHBoxLayout" name="horizontalLayout_3_Display">
          <item>
           <widget class="QLabel" name="thirdPartyTxUrlsLabel">
